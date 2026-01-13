@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Playlist Downloader</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .hidden {
+            display: none;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="url"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        .playlist-info {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #e8f5e8;
+            border-radius: 5px;
+            border: 1px solid #28a745;
+            display: none;
+        }
+        .playlist-info h4 {
+            margin: 0 0 5px 0;
+            color: #155724;
+        }
+        .playlist-info p {
+            margin: 0;
+            color: #155724;
+            font-size: 14px;
+        }
+        .playlist-loading {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border-radius: 5px;
+            border: 1px solid #ffeaa7;
+            display: none;
+            color: #856404;
+        }
+        button {
+            background-color: #ff0000;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #cc0000;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .progress {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s;
+            width: 0%;
+        }
+        .status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .files-list {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #ffffff;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .files-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .files-header h4 {
+            margin: 0;
+            color: #333;
+        }
+        .files-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .download-all-btn {
+            background-color: #28a745;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background-color 0.3s;
+            position: relative;
+        }
+        .download-all-btn:hover {
+            background-color: #218838;
+        }
+        .download-all-btn.downloading {
+            background-color: #6c757d;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .download-spinner {
+            display: none;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .download-all-btn.downloading .download-spinner {
+            display: inline-block;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .delete-files-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: background-color 0.3s;
+        }
+        .delete-files-btn:hover {
+            background-color: #c82333;
+        }
+        .file-item {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        .file-name {
+            flex: 1;
+            font-size: 14px;
+            color: #333;
+            word-break: break-word;
+        }
+        .download-btn {
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+            text-decoration: none;
+            margin-left: 10px;
+        }
+        .download-btn:hover {
+            background-color: #0056b3;
+        }
+        @media (max-width: 600px) {
+            .files-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .files-actions {
+                align-self: flex-end;
+            }
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .download-btn {
+                margin-left: 0;
+                margin-top: 5px;
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 YouTube Playlist Downloader</h1>
+        <form id="downloadForm">
+            {% csrf_token %}
+            <div class="form-group">
+                <label for="playlist_url">YouTube Playlist URL:</label>
+                <input type="url" id="playlist_url" name="playlist_url" required
+                       placeholder="https://www.youtube.com/playlist?list=... or https://music.youtube.com/playlist?list=...">
+                <div id="playlistLoading" class="playlist-loading">
+                    🔄 Loading playlist information...
+                </div>
+                <div id="playlistInfo" class="playlist-info">
+                    <h4 id="playlistTitle"></h4>
+                    <p id="playlistDetails"></p>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="download_type">Download Type:</label>
+                <select id="download_type" name="download_type" required>
+                    <option value="">Select type...</option>
+                    <option value="video">Video (with audio)</option>
+                    <option value="audio">Audio only</option>
+                </select>
+            </div>
+            <div class="form-group hidden" id="resolution-group">
+                <label for="resolution">Video Resolution:</label>
+                <select id="resolution" name="resolution">
+                    <option value="">Select resolution...</option>
+                    <option value="720p">720p</option>
+                    <option value="480p">480p</option>
+                    <option value="360p">360p</option>
+                    <option value="240p">240p</option>
+                    <option value="144p">144p</option>
+                </select>
+            </div>
+            <div class="form-group hidden" id="codec-group">
+                <label for="codec">Audio Format:</label>
+                <select id="codec" name="codec">
+                    <option value="">Select format...</option>
+                    <option value="aac">AAC</option>
+                    <option value="opus">Opus</option>
+                </select>
+            </div>
+            <button type="submit" id="downloadBtn">Start Download</button>
+        </form>
+
+        <div class="progress" id="progressSection">
+            <h3>Download Progress</h3>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div id="progressText">Initializing...</div>
+            <div id="filesList" class="files-list"></div>
+        </div>
+
+        <div id="statusMessage" class="status"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('downloadForm');
+        const playlistUrlInput = document.getElementById('playlist_url');
+        const downloadTypeSelect = document.getElementById('download_type');
+        const resolutionGroup = document.getElementById('resolution-group');
+        const codecGroup = document.getElementById('codec-group');
+        const progressSection = document.getElementById('progressSection');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const statusMessage = document.getElementById('statusMessage');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const filesList = document.getElementById('filesList');
+        const playlistInfo = document.getElementById('playlistInfo');
+        const playlistLoading = document.getElementById('playlistLoading');
+        const playlistTitle = document.getElementById('playlistTitle');
+        const playlistDetails = document.getElementById('playlistDetails');
+        let currentTaskId = null;
+        let playlistInfoTimeout = null;
+
+        // Fetch playlist info when URL is entered
+        playlistUrlInput.addEventListener('input', function() {
+            const url = this.value.trim();
+
+            // Clear previous timeout
+            if (playlistInfoTimeout) {
+                clearTimeout(playlistInfoTimeout);
+            }
+
+            // Hide previous info
+            playlistInfo.style.display = 'none';
+            playlistLoading.style.display = 'none';
+
+            if (url && (url.includes('youtube.com/playlist') || url.includes('music.youtube.com/playlist'))) {
+                playlistLoading.style.display = 'block';
+
+                // Debounce the API call
+                playlistInfoTimeout = setTimeout(async () => {
+                    try {
+                        const response = await fetch(`/playlist-info/?url=${encodeURIComponent(url)}`);
+                        const data = await response.json();
+
+                        playlistLoading.style.display = 'none';
+
+                        if (response.ok) {
+                            playlistTitle.textContent = data.title;
+                            playlistDetails.textContent = `${data.video_count} videos`;
+                            playlistInfo.style.display = 'block';
+                        } else {
+                            console.error('Error fetching playlist info:', data.error);
+                        }
+                    } catch (error) {
+                        playlistLoading.style.display = 'none';
+                        console.error('Error fetching playlist info:', error);
+                    }
+                }, 1000); // Wait 1 second after user stops typing
+            }
+        });
+
+        // Show/hide options based on download type
+        downloadTypeSelect.addEventListener('change', function() {
+            const type = this.value;
+            if (type === 'video') {
+                resolutionGroup.classList.remove('hidden');
+                codecGroup.classList.add('hidden');
+                document.getElementById('resolution').required = true;
+                document.getElementById('codec').required = false;
+            } else if (type === 'audio') {
+                resolutionGroup.classList.add('hidden');
+                codecGroup.classList.remove('hidden');
+                document.getElementById('resolution').required = false;
+                document.getElementById('codec').required = true;
+            } else {
+                resolutionGroup.classList.add('hidden');
+                codecGroup.classList.add('hidden');
+                document.getElementById('resolution').required = false;
+                document.getElementById('codec').required = false;
+            }
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(form);
+            downloadBtn.disabled = true;
+            downloadBtn.textContent = 'Cleaning up old files...';
+            progressSection.style.display = 'block';
+            statusMessage.textContent = '';
+            statusMessage.className = 'status';
+
+            try {
+                downloadBtn.textContent = 'Starting download...';
+                const response = await fetch('/download/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentTaskId = data.task_id;
+                    checkStatus(data.task_id);
+                } else {
+                    throw new Error(data.error || 'Download failed');
+                }
+            } catch (error) {
+                statusMessage.textContent = `Error: ${error.message}`;
+                statusMessage.className = 'status error';
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Start Download';
+                progressSection.style.display = 'none';
+            }
+        });
+
+        // Check download status
+        async function checkStatus(taskId) {
+            try {
+                const response = await fetch(`/status/${taskId}/`);
+                const data = await response.json();
+
+                progressFill.style.width = `${data.progress}%`;
+                progressText.textContent = `${data.completed_videos}/${data.total_videos} videos completed (${data.progress}%)`;
+
+                // Show downloaded files
+                if (data.downloaded_files && data.downloaded_files.length > 0) {
+                    displayFiles(data.downloaded_files, taskId);
+                }
+
+                if (data.status === 'completed') {
+                    statusMessage.textContent = `✅ Download completed! ${data.completed_videos} videos downloaded. Files are ready to download below.`;
+                    statusMessage.className = 'status success';
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Start Download';
+                } else if (data.status === 'failed') {
+                    statusMessage.textContent = `❌ Download failed: ${data.error_message}`;
+                    statusMessage.className = 'status error';
+                    downloadBtn.disabled = false;
+                    downloadBtn.textContent = 'Start Download';
+                } else {
+                    // Continue checking
+                    setTimeout(() => checkStatus(taskId), 2000);
+                }
+            } catch (error) {
+                statusMessage.textContent = `Error checking status: ${error.message}`;
+                statusMessage.className = 'status error';
+                downloadBtn.disabled = false;
+                downloadBtn.textContent = 'Start Download';
+            }
+        }
+
+        // Handle download all button click
+        function handleDownloadAll(taskId) {
+            const downloadBtn = document.querySelector('.download-all-btn');
+            const originalText = downloadBtn.innerHTML;
+
+            // Show loading state
+            downloadBtn.classList.add('downloading');
+            downloadBtn.innerHTML = `
+                <div class="download-spinner"></div>
+                Preparing Download...
+            `;
+
+            // Create a hidden link and trigger download
+            const link = document.createElement('a');
+            link.href = `/download_all/${taskId}/`;
+            link.download = '';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            // Reset button state after a delay
+            setTimeout(() => {
+                downloadBtn.classList.remove('downloading');
+                downloadBtn.innerHTML = originalText;
+            }, 3000); // Reset after 3 seconds
+        }
+
+        // Delete files function
+        async function deleteFiles(taskId) {
+            if (!confirm('Are you sure you want to delete all downloaded files?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/delete/${taskId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusMessage.textContent = '✅ Files deleted successfully!';
+                    statusMessage.className = 'status success';
+                    filesList.innerHTML = '';
+                    progressSection.style.display = 'none';
+                } else {
+                    throw new Error(data.error || 'Failed to delete files');
+                }
+            } catch (error) {
+                statusMessage.textContent = `Error deleting files: ${error.message}`;
+                statusMessage.className = 'status error';
+            }
+        }
+
+        // Display downloadable files
+        function displayFiles(files, taskId) {
+            if (files.length === 0) return;
+
+            filesList.innerHTML = `
+                <div class="files-header">
+                    <h4>📁 Downloaded Files (${files.length})</h4>
+                    <div class="files-actions">
+                        <button onclick="handleDownloadAll('${taskId}')"
+                                class="download-all-btn">
+                            📦 Download All as ZIP
+                            <div class="download-spinner"></div>
+                        </button>
+                        <button onclick="deleteFiles('${taskId}')"
+                                class="delete-files-btn">
+                            🗑️ Delete Files
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            files.forEach(filename => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <span class="file-name">${filename}</span>
+                    <a href="/file/${taskId}/${encodeURIComponent(filename)}/"
+                       class="download-btn"
+                       download="${filename}">
+                        📱 Download
+                    </a>
+                `;
+                filesList.appendChild(fileItem);
+            });
+        }
+    </script>
+</body>
+</html>
