@@ -297,7 +297,7 @@ def process_download(task_id):
 
         # Normalize URL and get playlist
         normalized_url = normalize_youtube_url(task.playlist_url)
-        pl = Playlist(normalized_url)
+        pl = Playlist(normalized_url, 'WEB')
         pl._video_regex = r"\"url\":\"(/watch\?v=[\w-]*)"
         videos = pl.video_urls
         task.total_videos = len(videos)
@@ -314,7 +314,7 @@ def process_download(task_id):
         completed = 0
         for url in videos:
             try:
-                yt = YouTube(url)
+                yt = YouTube(url, 'WEB')
                 if task.download_type == 'audio':
                     success = download_audio(yt, task.codec, out_dir, task)
                 else:
@@ -354,7 +354,7 @@ def get_playlist_info(request):
     try:
         # Normalize URL
         normalized_url = normalize_youtube_url(playlist_url)
-        pl = Playlist(normalized_url)
+        pl = Playlist(normalized_url, 'WEB')
 
         return JsonResponse({
             'title': pl.title,
